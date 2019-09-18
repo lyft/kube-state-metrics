@@ -143,6 +143,51 @@ var (
 				}
 			}),
 		},
+		{
+			Name: "kube_hpa_status_current_value",
+			Type: metric.Gauge,
+			Help: "Current metric value observed by the autoscaler.",
+			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				return &metric.Family{
+					Metrics: []*metric.Metric{
+						{
+							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
+							Value: float64(a.Status.CurrentMetrics.Resource.Current.Value),
+						},
+					},
+				}
+			}),
+		},
+		{
+			Name: "kube_hpa_status_average_value",
+			Type: metric.Gauge,
+			Help: "Average metric value observed by the autoscaler.",
+			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				return &metric.Family{
+					Metrics: []*metric.Metric{
+						{
+							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
+							Value: float64(a.Status.CurrentMetrics.Resource.Current.AverageValue),
+						},
+					},
+				}
+			}),
+		},
+		{
+			Name: "kube_hpa_status_average_utilization",
+			Type: metric.Gauge,
+			Help: "Average metric utilization observed by the autoscaler.",
+			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				return &metric.Family{
+					Metrics: []*metric.Metric{
+						{
+							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
+							Value: float64(a.Status.CurrentMetrics.Resource.Current.AverageUtilization),
+						},
+					},
+				}
+			}),
+		},
 	}
 )
 
