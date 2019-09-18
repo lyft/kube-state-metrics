@@ -152,7 +152,7 @@ var (
 				for i, c := range a.Status.CurrentMetrics {
 					ms[i] = &metric.Metric{
 						LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-						Value:       float64(a.Status.CurrentMetrics.Resource.Current.Value),
+						Value:       float64(a.Status.CurrentMetrics[i].Resource.Current.Value),
 					}
 				}
 				return &metric.Family{
@@ -169,7 +169,7 @@ var (
 				for i, c := range a.Status.CurrentMetrics {
 					ms[i] = &metric.Metric{
 						LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-						Value:       float64(a.Status.CurrentMetrics.Resource.Current.AverageValue),
+						Value:       float64(a.Status.CurrentMetrics[i].Resource.Current.AverageValue),
 					}
 				}
 				return &metric.Family{
@@ -186,7 +186,7 @@ var (
 				for i, c := range a.Status.CurrentMetrics {
 					ms[i] = &metric.Metric{
 						LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-						Value:       float64(a.Status.CurrentMetrics.Resource.Current.AverageUtilization),
+						Value:       float64(a.Status.CurrentMetrics[i].Resource.Current.AverageUtilization),
 					}
 				}
 				return &metric.Family{
