@@ -148,13 +148,15 @@ var (
 			Type: metric.Gauge,
 			Help: "Current metric value observed by the autoscaler.",
 			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				ms := make([]*metric.Metric, len(a.Status.CurrentMetrics))
+				for i, c := range a.Status.CurrentMetrics {
+					ms[i] = &metric.Metric{
+						LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
+						Value:       float64(a.Status.CurrentMetrics.Resource.Current.Value),
+					}
+				}
 				return &metric.Family{
-					Metrics: []*metric.Metric{
-						{
-							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value: float64(a.Status.CurrentMetrics.Resource.Current.Value),
-						},
-					},
+					Metrics: ms,
 				}
 			}),
 		},
@@ -163,13 +165,15 @@ var (
 			Type: metric.Gauge,
 			Help: "Average metric value observed by the autoscaler.",
 			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				ms := make([]*metric.Metric, len(a.Status.CurrentMetrics))
+				for i, c := range a.Status.CurrentMetrics {
+					ms[i] = &metric.Metric{
+						LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
+						Value:       float64(a.Status.CurrentMetrics.Resource.Current.AverageValue),
+					}
+				}
 				return &metric.Family{
-					Metrics: []*metric.Metric{
-						{
-							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value: float64(a.Status.CurrentMetrics.Resource.Current.AverageValue),
-						},
-					},
+					Metrics: ms,
 				}
 			}),
 		},
@@ -178,13 +182,15 @@ var (
 			Type: metric.Gauge,
 			Help: "Average metric utilization observed by the autoscaler.",
 			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				ms := make([]*metric.Metric, len(a.Status.CurrentMetrics))
+				for i, c := range a.Status.CurrentMetrics {
+					ms[i] = &metric.Metric{
+						LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
+						Value:       float64(a.Status.CurrentMetrics.Resource.Current.AverageUtilization),
+					}
+				}
 				return &metric.Family{
-					Metrics: []*metric.Metric{
-						{
-							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value: float64(a.Status.CurrentMetrics.Resource.Current.AverageUtilization),
-						},
-					},
+					Metrics: ms,
 				}
 			}),
 		},
