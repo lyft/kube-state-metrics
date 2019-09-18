@@ -132,8 +132,8 @@ var (
 
 					for j, m := range metrics {
 						metric := m
-						metric.LabelKeys = []string{"condition", "status"}
-						metric.LabelValues = append(metric.LabelValues, string(c.Type))
+						metric.LabelKeys = []string{"condition", "status", "reason"}
+						metric.LabelValues = append(metric.LabelValues, string(c.Type), string(c.Reason))
 						ms[i*len(conditionStatuses)+j] = metric
 					}
 				}
