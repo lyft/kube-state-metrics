@@ -17,6 +17,7 @@ limitations under the License.
 package store
 
 import (
+	"strings"
 	"k8s.io/kube-state-metrics/pkg/metric"
 
 	autoscaling "k8s.io/api/autoscaling/v2beta1"
@@ -144,25 +145,6 @@ var (
 			}),
 		},
 		{
-			Name: "kube_hpa_status_current_value",
-			Type: metric.Gauge,
-			Help: "Current metric value observed by the autoscaler.",
-			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
-				ms := make([]*metric.Metric, len(a.Status.CurrentMetrics))
-				for i, c := range a.Status.CurrentMetrics {
-					if c.Type == "Resource" {
-						ms[i] = &metric.Metric{
-							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value:       float64(c.Resource.Current.Value),
-						}
-					}
-				}
-				return &metric.Family{
-					Metrics: ms,
-				}
-			}),
-		},
-		{
 			Name: "kube_hpa_status_average_value",
 			Type: metric.Gauge,
 			Help: "Average metric value observed by the autoscaler.",
@@ -172,7 +154,7 @@ var (
 					if c.Type == "Resource" {
 						ms[i] = &metric.Metric{
 							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value:       float64(c.Resource.Current.AverageValue),
+							Value:       float64(c.Resource.CurrentAverageValue),
 						}
 					}
 				}
@@ -191,7 +173,7 @@ var (
 					if c.Type == "Resource" {
 						ms[i] = &metric.Metric{
 							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value:       float64(c.Resource.Current.AverageUtilization),
+							Value:       float64(c.Resource.CurrentAverageUtilization),
 						}
 					}
 				}
