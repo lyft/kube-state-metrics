@@ -17,7 +17,6 @@ limitations under the License.
 package store
 
 import (
-	"strings"
 	"k8s.io/kube-state-metrics/pkg/metric"
 
 	autoscaling "k8s.io/api/autoscaling/v2beta1"
@@ -154,7 +153,6 @@ var (
 					value, _ := c.Resource.CurrentAverageValue.AsInt64()
 					if c.Type == "Resource" {
 						ms[i] = &metric.Metric{
-							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
 							Value:       float64(value),
 						}
 					}
@@ -173,7 +171,6 @@ var (
 				for i, c := range a.Status.CurrentMetrics {
 					if c.Type == "Resource" {
 						ms[i] = &metric.Metric{
-							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
 							Value:       float64(*c.Resource.CurrentAverageUtilization),
 						}
 					}
