@@ -151,10 +151,11 @@ var (
 			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
 				ms := make([]*metric.Metric, len(a.Status.CurrentMetrics))
 				for i, c := range a.Status.CurrentMetrics {
+					value, _ := c.Resource.CurrentAverageValue.AsInt64()
 					if c.Type == "Resource" {
 						ms[i] = &metric.Metric{
 							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value:       float64(c.Resource.CurrentAverageValue),
+							Value:       float64(value),
 						}
 					}
 				}
@@ -173,7 +174,7 @@ var (
 					if c.Type == "Resource" {
 						ms[i] = &metric.Metric{
 							LabelValues: []string{strings.ToLower(string(c.Resource.Name))},
-							Value:       float64(c.Resource.CurrentAverageUtilization),
+							Value:       float64(*c.Resource.CurrentAverageUtilization),
 						}
 					}
 				}
