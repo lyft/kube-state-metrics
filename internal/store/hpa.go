@@ -17,22 +17,39 @@ limitations under the License.
 package store
 
 import (
-	"k8s.io/kube-state-metrics/pkg/metric"
-
 	autoscaling "k8s.io/api/autoscaling/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"k8s.io/kube-state-metrics/pkg/metric"
+	generator "k8s.io/kube-state-metrics/pkg/metric_generator"
 )
+
+type MetricTargetType int
+
+const (
+	Value MetricTargetType = iota
+	Utilization
+	Average
+
+	MetricTargetTypeCount // Used as a length argument to arrays
+)
+
+func (m MetricTargetType) String() string {
+	return [...]string{"value", "utilization", "average"}[m]
+}
 
 var (
 	descHorizontalPodAutoscalerLabelsName          = "kube_hpa_labels"
 	descHorizontalPodAutoscalerLabelsHelp          = "Kubernetes labels converted to Prometheus labels."
 	descHorizontalPodAutoscalerLabelsDefaultLabels = []string{"namespace", "hpa"}
 
-	hpaMetricFamilies = []metric.FamilyGenerator{
+	targetMetricLabels = []string{"metric_name", "metric_target_type"}
+
+	hpaMetricFamilies = []generator.FamilyGenerator{
 		{
 			Name: "kube_hpa_metadata_generation",
 			Type: metric.Gauge,
@@ -73,6 +90,68 @@ var (
 						},
 					},
 				}
+			}),
+		},
+		{
+			Name: "kube_hpa_spec_target_metric",
+			Type: metric.Gauge,
+			Help: "The metric specifications used by this autoscaler when calculating the desired replica count.",
+			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
+				ms := make([]*metric.Metric, 0, len(a.Spec.Metrics))
+				for _, m := range a.Spec.Metrics {
+					var metricName string
+
+					var v [MetricTargetTypeCount]int64
+					var ok [MetricTargetTypeCount]bool
+
+					switch m.Type {
+					case autoscaling.ObjectMetricSourceType:
+						metricName = m.Object.MetricName
+
+						v[Value], ok[Value] = m.Object.TargetValue.AsInt64()
+						if m.Object.AverageValue != nil {
+							v[Average], ok[Average] = m.Object.AverageValue.AsInt64()
+						}
+					case autoscaling.PodsMetricSourceType:
+						metricName = m.Pods.MetricName
+
+						v[Average], ok[Average] = m.Pods.TargetAverageValue.AsInt64()
+					case autoscaling.ResourceMetricSourceType:
+						metricName = string(m.Resource.Name)
+
+						if ok[Utilization] = (m.Resource.TargetAverageUtilization != nil); ok[Utilization] {
+							v[Utilization] = int64(*m.Resource.TargetAverageUtilization)
+						}
+
+						if m.Resource.TargetAverageValue != nil {
+							v[Average], ok[Average] = m.Resource.TargetAverageValue.AsInt64()
+						}
+					case autoscaling.ExternalMetricSourceType:
+						metricName = m.External.MetricName
+
+						// The TargetValue and TargetAverageValue are mutually exclusive
+						if m.External.TargetValue != nil {
+							v[Value], ok[Value] = m.External.TargetValue.AsInt64()
+						}
+						if m.External.TargetAverageValue != nil {
+							v[Average], ok[Average] = m.External.TargetAverageValue.AsInt64()
+						}
+					default:
+						// Skip unsupported metric type
+						continue
+					}
+
+					for i := range ok {
+						if ok[i] {
+							ms = append(ms, &metric.Metric{
+								LabelKeys:   targetMetricLabels,
+								LabelValues: []string{metricName, MetricTargetType(i).String()},
+								Value:       float64(v[i]),
+							})
+						}
+					}
+				}
+				return &metric.Family{Metrics: ms}
 			}),
 		},
 		{
@@ -125,16 +204,16 @@ var (
 			Type: metric.Gauge,
 			Help: "The condition of this autoscaler.",
 			GenerateFunc: wrapHPAFunc(func(a *autoscaling.HorizontalPodAutoscaler) *metric.Family {
-				ms := make([]*metric.Metric, len(a.Status.Conditions)*len(conditionStatuses))
+				ms := make([]*metric.Metric, 0, len(a.Status.Conditions)*len(conditionStatuses))
 
-				for i, c := range a.Status.Conditions {
+				for _, c := range a.Status.Conditions {
 					metrics := addConditionMetrics(c.Status)
 
-					for j, m := range metrics {
+					for _, m := range metrics {
 						metric := m
 						metric.LabelKeys = []string{"condition", "status"}
-						metric.LabelValues = append(metric.LabelValues, string(c.Type))
-						ms[i*len(conditionStatuses)+j] = metric
+						metric.LabelValues = append([]string{string(c.Type)}, metric.LabelValues...)
+						ms = append(ms, metric)
 					}
 				}
 
